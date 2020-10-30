@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
-	"math/rand"
 	"net"
 	"net/smtp"
 	"os"
@@ -49,7 +49,7 @@ const (
 		`Subject: %s` + "\r\n\r\n" +
 		`%s`
 
-	dialTimeout   = time.Second * 6
+	dialTimeout   = time.Second * 400
 	letterIdxBits = 6
 	letterIdxMask = 1<<letterIdxBits - 1
 	letterIdxMax  = 63 / letterIdxBits
@@ -63,7 +63,7 @@ func init() {
 	flag.StringVar(&subject, "subject", "Test Email", "-subject=Test Email")
 	flag.StringVar(&helo, "helo", "mail.example.org", "-helo=mail.example.org")
 	flag.StringVar(&outbound, "outbound", "", "-outbound=0.0.0.0")
-	flag.IntVar(&timeout, "timeout", 6, "-timeout=6 (second)")
+	flag.IntVar(&timeout, "timeout", 400, "-timeout=6 (second)")
 	flag.IntVar(&count, "count", 10, "-count=10")
 	flag.IntVar(&workers, "workers", 10, "-workers=100")
 	flag.IntVar(&jobs, "jobs", 10, "-jobs=50")
@@ -156,7 +156,38 @@ func start() {
 		log.Fatal("pool not created:", err)
 	}
 
-	body = createBodyFixedSize(size)
+	//body = createBodyFixedSize(size)
+	body, err = createBodyFixedSize()
+	if err != nil {
+		log.Fatal("createBodyFixedSize:", err)
+	}
+
+	//defaultSleepTime := time.Millisecond *100
+	//sleepTime := defaultSleepTime
+	//var mx sync.Mutex
+	//
+	//getSleepTime := func() time.Duration {
+	//	mx.Lock()
+	//	defer mx.Unlock()
+	//	return sleepTime
+	//}
+
+	//go func() {
+	//	time.Sleep(time.Minute * 2)
+	//	mx.Lock()
+	//	fmt.Println("increasing load")
+	//	sleepTime = time.Millisecond *2
+	//
+	//	mx.Unlock()
+	//
+	//	go func() {
+	//		time.Sleep(time.Minute * 10)
+	//		mx.Lock()
+	//		sleepTime = defaultSleepTime
+	//		mx.Unlock()
+	//	}()
+	//}()
+
 
 	for i := 0; i < count; i++ {
 
@@ -164,7 +195,8 @@ func start() {
 			outbound = sequental(i, iplist)
 			metric.SrcIPStats = append(metric.SrcIPStats, outbound)
 		}
-
+		time.Sleep(time.Millisecond*5)
+		//time.Sleep(getSleepTime())
 		pool.JobQueue <- func() {
 
 			metric.TotalCnt++
@@ -199,7 +231,6 @@ func start() {
 }
 
 func sendMail(outbound, smtpServer, from, to, subject, body, helo string) (metric map[string]time.Duration, remoteip string, err error) {
-
 	var wc io.WriteCloser
 	var msg string
 
@@ -272,6 +303,7 @@ func sendMail(outbound, smtpServer, from, to, subject, body, helo string) (metri
 	wc, err = c.Data()
 
 	if err != nil {
+		fmt.Println("6")
 		err = fmt.Errorf("DATA: %v", err)
 		metric["DATA"] = time.Now().Sub(dataTime)
 
@@ -279,29 +311,29 @@ func sendMail(outbound, smtpServer, from, to, subject, body, helo string) (metri
 	}
 
 	_, err = fmt.Fprintf(wc, msg)
-
 	err = wc.Close()
 
 	if err != nil {
+		fmt.Println("7")
 		err = fmt.Errorf("DATA: %v", err)
 		metric["DATA"] = time.Now().Sub(dataTime)
 
 		return
 	}
 
-	metric["DATA"] = time.Now().Sub(dataTime)
-
-	quitTime := time.Now()
-	err = c.Quit()
-
-	if err != nil {
-		err = fmt.Errorf("QUIT: %v", err)
-		metric["QUIT"] = time.Now().Sub(quitTime)
-
-		return
-	}
-
-	metric["SUCCESS"] = time.Now().Sub(startTime)
+	//metric["DATA"] = time.Now().Sub(dataTime)
+	//time.Sleep(time.Minute*2)
+	//quitTime := time.Now()
+	//err = c.Quit()
+	//
+	//if err != nil {
+	//	err = fmt.Errorf("QUIT: %v", err)
+	//	metric["QUIT"] = time.Now().Sub(quitTime)
+	//
+	//	return
+	//}
+	//
+	//metric["SUCCESS"] = time.Now().Sub(startTime)
 
 	return
 }
@@ -464,26 +496,31 @@ func printSlice(list []string, format string) {
 	}
 }
 
-func createBodyFixedSize(n int) string {
-
-	n = n * 1024
-
-	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-	var src = rand.NewSource(time.Now().UnixNano())
-	b := make([]byte, n)
-
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = src.Int63(), letterIdxMax
-		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
+func createBodyFixedSize() (string, error) {
+	b, err := ioutil.ReadFile("./_data/att-LbuJ1MJhzSxI9SNUF5aW2J2DvjVqec-nv5GKHfFQ9hwqCpJW-0")
+	if err != nil {
+		return "", err
 	}
 
-	return string(b)
+	return string(b), nil
+	//n = n * 1024
+	//
+	//const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	//
+	//var src = rand.NewSource(time.Now().UnixNano())
+	//b := make([]byte, n)
+	//
+	//for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+	//	if remain == 0 {
+	//		cache, remain = src.Int63(), letterIdxMax
+	//	}
+	//	if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+	//		b[i] = letterBytes[idx]
+	//		i--
+	//	}
+	//	cache >>= letterIdxBits
+	//	remain--
+	//}
+
+	//return string(b)
 }
