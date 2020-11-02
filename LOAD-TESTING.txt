@@ -1,0 +1,10 @@
+commands:
+
+Pre config:
+"ulimit -n 10000"
+"export GO111MODULE=off"
+
+
+To run:
+"go build -o main"
+"./main -host=localhost:2525 -from=dmitry@redsift.io -to=1a657704@redsift.co -workers=9999 -jobs=1000 -count=400000 -helo=localhost -balance -size=10"

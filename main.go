@@ -195,7 +195,7 @@ func start() {
 			outbound = sequental(i, iplist)
 			metric.SrcIPStats = append(metric.SrcIPStats, outbound)
 		}
-		time.Sleep(time.Millisecond*5)
+		time.Sleep(time.Millisecond*10)
 		//time.Sleep(getSleepTime())
 		pool.JobQueue <- func() {
 
@@ -497,6 +497,10 @@ func printSlice(list []string, format string) {
 }
 
 func createBodyFixedSize() (string, error) {
+	//mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n";
+	//subject := "Subject: Test email from Go!\n"
+	//msg := []byte(subject + mime + "<html><body><h1>Hello World!</h1></body></html>")
+
 	b, err := ioutil.ReadFile("./_data/att-LbuJ1MJhzSxI9SNUF5aW2J2DvjVqec-nv5GKHfFQ9hwqCpJW-0")
 	if err != nil {
 		return "", err
